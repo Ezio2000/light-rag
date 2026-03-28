@@ -13,6 +13,7 @@ MAX_CONTENT_LENGTH="${RAG_MAX_CONTENT_LENGTH:-300}"
 RERANK_ENABLED="${RERANK_ENABLED:-false}"
 RERANK_CANDIDATES="${RERANK_CANDIDATES:-20}"
 DISTANCE_THRESHOLD="${RAG_DISTANCE_THRESHOLD:-0.5}"
+SCORE_THRESHOLD="${RERANK_SCORE_THRESHOLD:-0.3}"
 
 # 读取 stdin JSON
 INPUT=$(cat)
@@ -100,17 +101,18 @@ if [ "$RERANK_ENABLED" = "true" ] && [ -n "${RERANKER_URL:-}" ]; then
     fi
 fi
 
-# 6. 格式化输出（带距离阈值过滤）
+# 6. 格式化输出（带阈值过滤）
 format_results() {
     local response="$1"
     local limit="$2"
     local max_len="$3"
     local threshold="$4"
+    local score_threshold="$5"
 
-    echo "$response" | jq -r --arg limit "$limit" --arg max_len "$max_len" --argjson threshold "$threshold" '
+    echo "$response" | jq -r --arg limit "$limit" --arg max_len "$max_len" --argjson threshold "$threshold" --argjson score_threshold "$score_threshold" '
         if .results then
-            # reranker 格式（包含 source, distance, score）
-            .results[:($limit | tonumber)] | map(
+            # reranker 格式（包含 source, distance, score）- 过滤 score 低于阈值的结果
+            .results[:($limit | tonumber)] | map(select(.score >= $score_threshold) |
                 .document as $doc |
                 .score as $score |
                 .distance as $dist |
@@ -137,7 +139,7 @@ format_results() {
     '
 }
 
-RESULTS=$(format_results "$SEARCH_RESPONSE" "$TOP_K" "$MAX_CONTENT_LENGTH" "$DISTANCE_THRESHOLD")
+RESULTS=$(format_results "$SEARCH_RESPONSE" "$TOP_K" "$MAX_CONTENT_LENGTH" "$DISTANCE_THRESHOLD" "$SCORE_THRESHOLD")
 
 # 7. 输出结果（JSON 格式，包含 systemMessage）
 if [ -n "$RESULTS" ] && [ "$RESULTS" != "null" ]; then

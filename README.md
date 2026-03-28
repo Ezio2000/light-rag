@@ -137,7 +137,7 @@ cp scripts/search.sh .claude/hooks/
 cp scripts/import_docs.py .claude/hooks/
 ```
 
-Hook 配置已在 `.claude/settings.json` 中预置，内容如下：
+确认 `.claude/settings.json` 存在且配置正确。如果文件不存在，创建如下内容：
 
 ```json
 {
@@ -171,6 +171,11 @@ Hook 配置已在 `.claude/settings.json` 中预置，内容如下：
 ### 第 7 步：导入知识文档
 
 将文档放入 `knowledge/` 目录，支持的格式：`.md`、`.txt`、`.py`、`.json`、`.yaml`、`.yml`。
+
+> **示例文档**：项目已预置几个示例文档供测试：
+> - `rag-guide.md` - RAG 系统使用指南
+> - `xieningjun_profile.md` - 用户档案示例
+> - `futengyan_profile.md`、`huangjun_profile.md` 等
 
 ```bash
 uv run python scripts/import_docs.py
@@ -216,12 +221,28 @@ uv run python scripts/import_docs.py /path/to/your/docs
 echo '{"prompt": "部署步骤是什么"}' | bash scripts/search.sh
 ```
 
+### 部署验证清单
+
+完成以上步骤后，按此清单逐项验证：
+
+| 检查项 | 命令 | 预期结果 |
+|--------|------|----------|
+| Docker 服务运行 | `docker compose ps` | 3 个服务（embedding、chroma、reranker）状态为 `running` |
+| Embedding 健康 | `curl localhost:8001/health` | `{"status":"healthy",...}` |
+| Chroma 健康 | `curl localhost:8000/api/v2/heartbeat` | `{"heartbeat":true}` |
+| 知识库有数据 | `curl localhost:8000/api/v2/tenants/default_tenant/databases/default_database/collections` | 返回包含 `knowledge` 的 collection |
+| Hook 配置存在 | `cat .claude/settings.json` | 返回有效 JSON 配置 |
+| Hook 脚本存在 | `ls .claude/hooks/search.sh` | 文件存在 |
+| 检索脚本可用 | `echo '{"prompt":"test"}' \| bash .claude/hooks/search.sh` | 返回 JSON 或无报错 |
+
+**全部通过后，重启 Claude Code 会话使 Hook 生效。**
+
 ## 目录结构
 
 ```
 .
 ├── .claude/
-│   ├── settings.json           # Hook 配置 + 环境变量
+│   ├── settings.json           # Hook 配置 + 环境变量（需确认存在）
 │   └── hooks/                  # 实际运行的 Hook 脚本（从 scripts/ 复制）
 │       ├── search.sh           # 检索 Hook（UserPromptSubmit）
 │       └── import_docs.py      # 文档导入脚本
@@ -236,7 +257,7 @@ echo '{"prompt": "部署步骤是什么"}' | bash scripts/search.sh
 │   ├── pyproject.toml
 │   └── app/
 │       └── main.py             # FastAPI 向量化服务
-├── knowledge/                  # 待导入的知识文档
+├── knowledge/                  # 待导入的知识文档（已含示例）
 ├── reranker/                   # Reranker 服务（可选，用于重排）
 └── pyproject.toml              # 本地依赖
 ```
@@ -381,4 +402,49 @@ HF_CACHE_DIR=~/.cache/huggingface
 
 ### Hook 未触发
 
-确认 `.claude/settings.json` 在项目根目录下，且你是在该项目的 Claude Code 会话中操作。可通过 `/hooks` 命令查看当前 Hook 状态。
+排查步骤：
+
+1. **确认配置文件存在**：
+   ```bash
+   cat .claude/settings.json
+   ```
+   如果不存在，参考"第 6 步"创建。
+
+2. **确认脚本可执行**：
+   ```bash
+   ls -la .claude/hooks/search.sh
+   chmod +x .claude/hooks/search.sh  # 如果没有执行权限
+   ```
+
+3. **手动测试脚本**：
+   ```bash
+   echo '{"prompt": "测试问题"}' | bash .claude/hooks/search.sh
+   ```
+   应返回 JSON 格式结果或无报错退出。
+
+4. **确认在正确项目目录**：
+   Hook 只在包含 `.claude/settings.json` 的项目目录下生效。确保你是在该项目根目录启动的 Claude Code。
+
+5. **重启 Claude Code 会话**：
+   修改 `settings.json` 后需要重启会话才能生效。
+
+6. **使用 /hooks 命令检查**：
+   在 Claude Code 中输入 `/hooks` 查看当前 Hook 状态。
+
+### 知识库检索无结果
+
+1. **确认已导入文档**：
+   ```bash
+   uv run python scripts/import_docs.py
+   ```
+
+2. **检查 collection 是否存在**：
+   ```bash
+   curl -s http://localhost:8000/api/v2/tenants/default_tenant/databases/default_database/collections | jq '.'
+   ```
+
+3. **调整距离阈值**：
+   如果 `RAG_DISTANCE_THRESHOLD` 设置过低（如 0.3），可能导致结果被过滤。尝试调高到 0.5 或 1.0。
+
+4. **检查问题与文档相关性**：
+   确保你的问题与知识库中的文档内容相关。
