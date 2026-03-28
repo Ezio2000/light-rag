@@ -79,6 +79,7 @@ cp .env.example .env
 |------|--------|------|
 | `EMBEDDING_PORT` | `8001` | Embedding 服务端口 |
 | `EMBEDDING_MODEL` | `BAAI/bge-large-zh-v1.5` | Embedding 模型 |
+| `KEYWORD_EXTRACT_ENABLED` | `true` | 是否启用关键词提取（提升检索精度） |
 | `CHROMA_PORT` | `8000` | Chroma 端口 |
 | `RERANKER_PORT` | `8002` | Reranker 服务端口 |
 | `RERANK_MODEL` | `BAAI/bge-reranker-v2-m3` | Reranker 模型 |
@@ -263,6 +264,19 @@ echo '{"prompt": "部署步骤是什么"}' | bash scripts/search.sh
 ```
 
 ## 配置参考
+
+### 服务配置参数（.env）
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `EMBEDDING_PORT` | `8001` | Embedding 服务端口 |
+| `EMBEDDING_MODEL` | `BAAI/bge-large-zh-v1.5` | Embedding 模型 |
+| `KEYWORD_EXTRACT_ENABLED` | `true` | 是否启用关键词提取（过滤无意义词，提升检索精度） |
+| `CHROMA_PORT` | `8000` | Chroma 端口 |
+| `RERANKER_PORT` | `8002` | Reranker 服务端口 |
+| `RERANK_MODEL` | `BAAI/bge-reranker-v2-m3` | Reranker 模型 |
+
+> **关键词提取**：启用后会在向量化前提取核心关键词，过滤掉"我想"、"一下"、"请问"等无意义词，让检索更精准。修改后需重建容器：`docker compose up -d --build embedding`
 
 ### 检索参数（.claude/settings.json → env）
 
