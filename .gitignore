@@ -1,0 +1,103 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+*.egg-info/
+
+# Claude Code
+.claude/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# 日志
+*.log
+
+# ============================================
+# 敏感数据
+# ============================================
+
+# 环境变量
+.env
+.env.*
+!.env.example
+
+# 密钥和凭证
+*.pem
+*.key
+*.crt
+secrets/
+credentials/
+.secrets/
+credentials.json
+secrets.json
+*_secret*
+*_credentials*
+
+# 数据库文件（可能包含敏感数据）
+*.db
+*.sqlite
+*.sqlite3
+
+# 备份文件
+*.bak
+*.backup
+
+# ============================================
+# AI / 机器学习 相关
+# ============================================
+
+# 模型文件
+*.bin
+*.gguf
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.onnx
+*.model
+models/
+checkpoints/
+
+# Hugging Face 缓存
+.cache/
+.cache/huggingface/
+hub/
+hf_cache/
+
+# 向量数据库
+data/chroma/
+chroma_db/
+faiss_index/
+*.index
+
+# Embedding 缓存
+embedding/.cache/
+reranker/.cache/
+embeddings/cache/
+
+# LangChain
+.langchain/
+
+# Jupyter Notebook 检查点
+.ipynb_checkpoints/
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# TensorBoard
+runs/
+logs/
+
+# 临时训练数据
+tmp/
+temp/
