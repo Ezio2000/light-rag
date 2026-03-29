@@ -8,7 +8,6 @@ services:
       - ${HF_CACHE_DIR:-~/.cache/huggingface}:/root/.cache/huggingface
     environment:
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-BAAI/bge-large-zh-v1.5}
-      - KEYWORD_EXTRACT_ENABLED=${KEYWORD_EXTRACT_ENABLED:-true}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
       interval: 30s

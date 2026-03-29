@@ -1,27 +1,20 @@
-#!/usr/bin/env python3
 """
-文档导入脚本 - 将 knowledge/ 目录下的文档导入到 Chroma
-用法: uv run .claude/hooks/import_docs.py [目录路径]
+文档导入模块 - 将知识文档导入到 Chroma 向量库
 """
 
-import json
-import os
-import sys
 from pathlib import Path
 
 import requests
 
-# 配置
-EMBEDDING_URL = os.getenv("EMBEDDING_URL", "http://localhost:8001")
-CHROMA_URL = os.getenv("CHROMA_URL", "http://localhost:8000")
-CHROMA_API_VERSION = os.getenv("CHROMA_API_VERSION", "v2")
-COLLECTION_NAME = "knowledge"
-CHUNK_SIZE = 500
-CHUNK_OVERLAP = 50
+from .config import (
+    CHUNK_OVERLAP,
+    CHUNK_SIZE,
+    CHROMA_COLLECTION_BASE,
+    COLLECTION_NAME,
+    EMBEDDING_URL,
+)
 
-# Chroma v2 API
-API_BASE = f"{CHROMA_URL}/api/{CHROMA_API_VERSION}"
-COLLECTION_BASE = f"{API_BASE}/tenants/default_tenant/databases/default_database/collections"
+SUPPORTED_EXTENSIONS = {".md", ".txt", ".py", ".json", ".yaml", ".yml"}
 
 
 def get_embeddings_batch(texts: list[str]) -> list[list[float]]:
@@ -29,7 +22,7 @@ def get_embeddings_batch(texts: list[str]) -> list[list[float]]:
     response = requests.post(
         f"{EMBEDDING_URL}/embed/batch",
         json={"texts": texts},
-        timeout=120
+        timeout=120,
     )
     response.raise_for_status()
     return response.json()["embeddings"]
@@ -38,7 +31,7 @@ def get_embeddings_batch(texts: list[str]) -> list[list[float]]:
 def ensure_collection() -> str:
     """确保 collection 存在，返回 collection ID"""
     try:
-        response = requests.get(f"{COLLECTION_BASE}", timeout=10)
+        response = requests.get(CHROMA_COLLECTION_BASE, timeout=10)
         if response.status_code == 200:
             for col in response.json():
                 if col.get("name") == COLLECTION_NAME:
@@ -49,9 +42,9 @@ def ensure_collection() -> str:
 
     # 创建 collection
     response = requests.post(
-        f"{COLLECTION_BASE}",
+        CHROMA_COLLECTION_BASE,
         json={"name": COLLECTION_NAME, "get_or_create": True},
-        timeout=10
+        timeout=10,
     )
     response.raise_for_status()
     col = response.json()
@@ -94,23 +87,24 @@ def import_file(file_path: Path, collection_id: str) -> int:
     ids = [f"{file_id}_{i}" for i in range(len(chunks))]
     metadatas = [{"source": str(file_path)}] * len(chunks)
 
-    # 写入 Chroma（v2 用 collection ID，使用 upsert 支持更新）
+    # 写入 Chroma（upsert 支持更新）
     response = requests.post(
-        f"{COLLECTION_BASE}/{collection_id}/upsert",
+        f"{CHROMA_COLLECTION_BASE}/{collection_id}/upsert",
         json={
             "ids": ids,
             "embeddings": embeddings,
             "documents": chunks,
             "metadatas": metadatas,
         },
-        timeout=30
+        timeout=30,
     )
     response.raise_for_status()
 
     return len(chunks)
 
 
-def main():
+def main(dir_path: str = "knowledge"):
+    """主入口：检查服务 → 遍历目录 → 导入文件"""
     print("=" * 60)
     print("知识库文档导入工具")
     print("=" * 60)
@@ -121,30 +115,30 @@ def main():
         print(f"✓ Embedding 服务正常: {EMBEDDING_URL}")
     except requests.RequestException:
         print(f"✗ Embedding 服务不可用: {EMBEDDING_URL}")
-        sys.exit(1)
+        return
 
     try:
-        requests.get(f"{CHROMA_URL}/api/{CHROMA_API_VERSION}/heartbeat", timeout=5).raise_for_status()
+        from .config import CHROMA_API_BASE, CHROMA_URL
+        requests.get(f"{CHROMA_API_BASE}/heartbeat", timeout=5).raise_for_status()
         print(f"✓ Chroma 服务正常: {CHROMA_URL}")
     except requests.RequestException:
         print(f"✗ Chroma 服务不可用: {CHROMA_URL}")
-        sys.exit(1)
+        return
 
     # 确保 collection 存在
     collection_id = ensure_collection()
 
     # 获取目录
-    dir_path = Path(sys.argv[1] if len(sys.argv) > 1 else "knowledge")
-    if not dir_path.exists():
-        print(f"✗ 目录不存在: {dir_path}")
-        sys.exit(1)
+    path = Path(dir_path)
+    if not path.exists():
+        print(f"✗ 目录不存在: {path}")
+        return
 
-    extensions = {".md", ".txt", ".py", ".json", ".yaml", ".yml"}
     total_chunks = 0
     file_count = 0
 
-    for file_path in sorted(dir_path.rglob("*")):
-        if file_path.is_file() and file_path.suffix.lower() in extensions:
+    for file_path in sorted(path.rglob("*")):
+        if file_path.is_file() and file_path.suffix.lower() in SUPPORTED_EXTENSIONS:
             print(f"\n📄 {file_path}")
             try:
                 chunks = import_file(file_path, collection_id)
@@ -154,9 +148,5 @@ def main():
             except Exception as e:
                 print(f"  ✗ 导入失败: {e}")
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"📊 导入完成: {file_count} 个文件, {total_chunks} 个文本块")
-
-
-if __name__ == "__main__":
-    main()
