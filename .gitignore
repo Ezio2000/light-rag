@@ -101,3 +101,7 @@ logs/
 # 临时训练数据
 tmp/
 temp/
+
+# 知识库数据（敏感信息）
+knowledge/*
+!knowledge/.gitkeep
