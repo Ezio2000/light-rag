@@ -33,6 +33,8 @@ EMBEDDING_RESPONSE=$(curl -s --max-time 30 \
 # 检查 embedding 是否成功
 if echo "$EMBEDDING_RESPONSE" | jq -e '.embedding' > /dev/null 2>&1; then
     EMBEDDING=$(echo "$EMBEDDING_RESPONSE" | jq -c '.embedding')
+    # 提取关键词（用于展示）
+    KEYWORDS=$(echo "$EMBEDDING_RESPONSE" | jq -r '.keywords // empty')
 else
     # embedding 失败，静默退出
     exit 0
@@ -155,9 +157,16 @@ $RESULTS"
     # 提取简洁摘要：来源 + 相关度/距离（不含内容）
     SUMMARY=$(echo "$RESULTS" | grep "^\[来源:" | head -n "$TOP_K")
 
-    # systemMessage 只展示文档名和相关性
+    # 构建关键词提示（如果有）
+    KEYWORD_MSG=""
+    if [ -n "$KEYWORDS" ] && [ "$KEYWORDS" != "null" ]; then
+        KEYWORD_MSG="🔍 关键词: ${KEYWORDS}
+"
+    fi
+
+    # systemMessage 展示关键词 + 文档名和相关性
     SYSTEM_MSG="📚 知识库检索完成，找到 ${RESULT_COUNT} 条相关结果：
-${SUMMARY}"
+${KEYWORD_MSG}${SUMMARY}"
 
     # 输出 JSON 格式（hookSpecificOutput 包裹 additionalContext）
     jq -n \
