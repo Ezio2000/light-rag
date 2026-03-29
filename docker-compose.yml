@@ -21,7 +21,7 @@ services:
     ports:
       - "${CHROMA_PORT:-8000}:8000"
     volumes:
-      - ./data/chroma:/chroma/chroma
+      - chroma_data:/data
     environment:
       - CHROMA_SERVER_AUTH_PROVIDER=${CHROMA_AUTH_PROVIDER:-}
       - CHROMA_SERVER_AUTH_CREDENTIALS=${CHROMA_AUTH_CREDENTIALS:-}
@@ -48,3 +48,6 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
+
+volumes:
+  chroma_data:

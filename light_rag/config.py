@@ -3,6 +3,9 @@
 """
 
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Embedding 服务
 EMBEDDING_URL = os.getenv("EMBEDDING_URL", "http://localhost:8001")

@@ -5,6 +5,7 @@
 
 import json
 import sys
+import time
 
 import requests
 
@@ -158,6 +159,8 @@ def run_search(prompt: str) -> str | None:
     """
     执行完整的检索流程，返回 JSON 字符串或 None。
     """
+    start_time = time.time()
+
     if not prompt or not prompt.strip():
         return None
 
@@ -240,7 +243,10 @@ def run_search(prompt: str) -> str | None:
     if keywords:
         keyword_msg = f"🔍 关键词: {keywords}\n"
 
-    system_msg = f"📚 知识库检索完成，找到 {result_count} 条相关结果：\n{keyword_msg}{summary}"
+    # 计算总耗时
+    elapsed_ms = round((time.time() - start_time) * 1000)
+
+    system_msg = f"📚 知识库检索完成，找到 {result_count} 条相关结果（耗时 {elapsed_ms}ms）：\n{keyword_msg}{summary}"
 
     output = {
         "hookSpecificOutput": {
