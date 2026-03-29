@@ -135,7 +135,7 @@ uv run python -m light_rag import /path/to/docs
 | `RAG_MAX_CONTENT_LENGTH` | 300 | 每条结果最大字符数 |
 | `RAG_DISTANCE_THRESHOLD` | 0.5 | 向量距离阈值 |
 | `RERANK_ENABLED` | false | 是否启用重排 |
-| `RERANKER_URL` | - | Reranker 地址 |
+| `RERANKER_URL` | http://localhost:8002 | Reranker 地址 |
 | `RERANK_CANDIDATES` | 5 | 重排候选数量 |
 | `RERANK_SCORE_THRESHOLD` | 0.3 | 重排分数阈值 |
 | `KEYWORD_EXTRACT_ENABLED` | true | 是否启用关键词提取 |
